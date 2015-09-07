@@ -308,8 +308,6 @@ proc loadconfig { filename } {
 
 #==================================================================
 #函数名：  saveconfig
-#作者：    Judo Xu
-#日期：    2015-08-09
 #功能：    保存当前配置到指定文件
 #输入参数：
 #          configFile - 指定存储文件的绝对路径
@@ -392,7 +390,8 @@ proc Login { { location "localhost/8009"} { force 0 } { filename null } } {
     }
     puts "Login failed on all port $portInfo."
     return
-}   
+}
+
 proc ConfigAttr { obj key value { step 0 } { port_step 0 } } {
     set mv [ ixNet getA $obj $key ]
     if { [regexp "ixNet::OBJ-" $mv] } {
@@ -422,7 +421,25 @@ proc ConfigAttr { obj key value { step 0 } { port_step 0 } } {
     
     ixNet commit
 }
-    
+
+#==================================================================
+#函数名：  getViewObject
+#功能：    通过指定的结果视图名字拿到结果视图对象
+#输入参数：
+#         viewName  - 结果视图名字
+#返回值：  
+#          结果视图对象，或“”
+#==================================================================
+proc getViewObject { viewName } {
+    set views [ixNet getList [ixNet getRoot]/statistics view]
+    set viewObj ""
+    set editedViewName "::ixNet::OBJ-/statistics/view:\"$viewName\""
+    if { [lsearch -regexp -inline $views $editedViewName] != "" } {
+        return [lsearch -regexp -inline $views $editedViewName]
+    }
+    return viewObj
+}
+
 set currDir [file dirname [info script]]
 puts "Package Directory $currDir"
 puts "load package Ixia_Util..."

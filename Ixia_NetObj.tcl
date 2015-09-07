@@ -114,8 +114,8 @@ class ProtocolObject {
         }
     }
     
-    method restartDown {} {
-        set tag "body ProtocolObject::start [info script]"
+    method restart_down {} {
+        set tag "body ProtocolObject::restart_down [info script]"
         Deputs "----- TAG: $tag -----"
         catch {
             foreach h $handle {
@@ -240,7 +240,7 @@ body DeviceGroup::config { args } {
 }
 
 
-class EthernetObject {
+class Ethernet {
     inherit ProtocolObject
     
     public variable vlan
@@ -276,24 +276,24 @@ class EthernetObject {
             set vlan [list]
             set vlan [lindex [ixNet getL $handle vlan] 0]
         } ] } {
-            error "$errNumber(1) Parent Object in TopologyObject ctor"
+            error "$errNumber(1) Parent Object in Ethernet ctor"
         }
     }
     
     method config { args } {}
 }
 
-body EthernetObject::config { args } {
+body Ethernet::config { args } {
     global errorInfo
     global errNumber
-    set tag "body EthernetObject::config [info script]"
+    set tag "body Ethernet::config [info script]"
     Deputs "----- TAG: $tag -----"
     
     #param collection
     Deputs "Args:$args "
     
     array set kvList [list]
-    foreach { key value } [string range $args 1 end-1] {
+    foreach { key value } $args {
         set key [string tolower $key]
         switch -exact -- $key {
             -mac -
