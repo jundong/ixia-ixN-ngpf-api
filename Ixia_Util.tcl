@@ -719,29 +719,29 @@ proc GetStepPrefixlen { ip } {
 }
 
 proc GetObject { name } {
-    Deputs "GetObject search..."
-    Deputs "objs:[find objects]"
-    set objList [list]
-    foreach obj [ find objects ] {
-        foreach hdl $name {
-            if { $hdl == $obj || $hdl == "::$obj"} {
-               if { [lsearch $objList $obj] == -1 } {
-                  lappend objList $obj
-               }
+   Deputs "GetObject search..."
+   Deputs "objs:[find objects]"
+   set objList [list]
+   foreach obj [ find objects ] {
+      foreach hdl $name {
+         if { $hdl == $obj || $hdl == "::$obj"} {
+            if { [lsearch $objList $obj] == -1 } {
+               lappend objList $obj
             }
-            if { [ regexp $hdl $obj ] && ![ regexp ${hdl}. $obj ] && ![ regexp "\[^:\]$hdl" $obj ] } {
-               if { [lsearch $objList $obj] == -1 } {
-                  lappend objList $obj
-               }
+         }
+         if { [ regexp $hdl $obj ] && ![ regexp ${hdl}. $obj ] && ![ regexp "\[^:\]$hdl" $obj ] } {
+            if { [lsearch $objList $obj] == -1 } {
+               lappend objList $obj
             }
-        }
-    }
-    if { [llength $objList] == 1 } {
-        # Backward compatiable handle 
-        return [lindex $objList 0]
-    }
-    
-    return $objList
+         }
+      }
+   }
+   if { [llength $objList] == 1 } {
+      # Backward compatiable handle 
+      return [lindex $objList 0]
+   }
+   
+   return $objList
 }
 
 proc GetAllPortObj {} {

@@ -492,26 +492,6 @@ if { [ catch {
         puts "load package fail...$err $tbcErr"
     }
 } 
-puts "load package Ixia_NetDhcp..."
-if { [ catch {
-    source [file join $currDir Ixia_NetDhcp.tcl]
-} err ] } {
-    if { [ catch {
-        source [file join $currDir Ixia_NetDhcp.tbc]
-    } tbcErr ] } {
-        puts "load package fail...$err $tbcErr"
-    }
-} 
-puts "load package Ixia_NetIgmp..."
-if { [ catch {
-    source [file join $currDir Ixia_NetIgmp.tcl]
-} err ] } {
-    if { [ catch {
-        source [file join $currDir Ixia_NetIgmp.tbc]
-    } tbcErr ] } {
-        puts "load package fail...$err $tbcErr"
-    }
-} 
 puts "load package Ixia_NetCapture..."
 if { [ catch {
     source [file join $currDir Ixia_NetCapture.tcl]
@@ -531,43 +511,13 @@ if { [ catch {
     } tbcErr ] } {
         puts "load package fail...$err $tbcErr"
     }
-} 
-puts "load package Ixia_NetTrill..."
-if { [ catch {
-    source [file join $currDir Ixia_NetTrill.tcl]
-} err ] } {
-    if { [ catch {
-        source [file join $currDir Ixia_NetTrill.tbc]
-    } tbcErr ] } {
-        puts "load package fail...$err $tbcErr"
-    }
-} 
+}  
 puts "load package Ixia_NetPPPoX..."
 if { [ catch {
     source [file join $currDir Ixia_NetPPPoX.tcl]
 } err ] } {
     if { [ catch {
         source [file join $currDir Ixia_NetPPPoX.tbc]
-    } tbcErr ] } {
-        puts "load package fail...$err $tbcErr"
-    }
-} 
-puts "load package Ixia_NetBgp..."
-if { [ catch {
-    source [file join $currDir Ixia_NetBgp.tcl]
-} err ] } {
-    if { [ catch {
-        source [file join $currDir Ixia_NetBgp.tbc]
-    } tbcErr ] } {
-        puts "load package fail...$err $tbcErr"
-    }
-} 
-puts "load package Ixia_NetNgpf...."
-if { [ catch {
-    source [file join $currDir Ixia_NetNgpf.tcl]
-} err ] } {
-    if { [ catch {
-        source [file join $currDir Ixia_NetNgpf.tbc]
     } tbcErr ] } {
         puts "load package fail...$err $tbcErr"
     }

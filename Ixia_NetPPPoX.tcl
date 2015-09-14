@@ -14,7 +14,7 @@
 #1. 
 ################################################
 
-class PppoeObject {
+class PppoeDevice {
     inherit ProtocolObject
     
     public variable enable_echo_req
@@ -34,14 +34,14 @@ class PppoeObject {
     
     method config { args } {}
     method wait_connect_complete { args } {}
-    method get_view_stats { args } {}
+    method get_summary_stats {} {}
 }
 
-body PppoeObject::config { args } {
+body PppoeDevice::config { args } {
     global errorInfo
     global errNumber
     
-    set tag "body PppoeObject::config [info script]"
+    set tag "body PppoeDevice::config [info script]"
     Deputs "----- TAG: $tag -----"
     
     #param collection
@@ -139,74 +139,54 @@ body PppoeObject::config { args } {
     return [GetStandardReturnHeader]
 }
 
-#==================================================================
-#函数名：  get_view_stats
-#功能：    通过结果视图名字和列名取得指定结果数据
-#输入参数：args
-#          -view_name - 结果视图名字，默认设置为“Protocols Summary“
-#          -captions - 结果视图列名, 如果没有指定，将返回全部列结果
-#返回值：  
-#          按指定列，序列的按行返回所以结果
-#          caption1 caption2 caption3
-#              1       1        1
-#              2       2        2
-#==================================================================
-body PppoeObject::get_view_stats { args } {
-    set tag "body PppoeObject::get_view_stats [info script]"
+body PppoeDevice::wait_connect_complete { args } {
+    set tag "body PppoeDevice::wait_connect_complete [info script]"
     Deputs "----- TAG: $tag -----"
-    
-    set view_name ""
-    set captions [list]
+
+    set timeout 300
     foreach { key value } $args {
         set key [string tolower $key]
         switch -exact -- $key {
-            -view_name {
-                set view_name [ getViewObject $value ]
-                if { $view_name == "" } {
+            -timeout {
+                set trans [ TimeTrans $value ]
+                if { [ string is integer $trans ] } {
+                    set timeout $trans
+                } else {
                     error "$errNumber(1) key:$key value:$value"
                 }
             }
-            -captions {
-                set captions $value
-            }
-            default {
-                continue
-            }
         }
     }
     
-    if { $view_name == "" } {
-        set view_name [ getViewObject "Protocols Summary" ]
-    }
-    Deputs "view:$view_name"
-    
-    set captionList [ ixNet getA $view_name/page -columnCaptions ]
-    set statList [ ixNet getA $view_name/page -rowValues ]
-    
-    if { [llength $captions] == 0 } {
-        set captions $captionList
-    }
+    set startClick [ clock seconds ]
+    while { 1 } {
+        set click [ clock seconds ]
+        if { [ expr $click - $startClick ] >= $timeout } {
+            return [ GetErrorReturnHeader "timeout" ]
+        }
         
-    set retList [list]
-    lappend retList $captions
-    foreach row $statList {
-        eval {set row} $row
-        set rowValues [list]
-        foreach caption $captions {
-            set index [ lsearch -exact $captionList $caption ]
-            lappend rowValues [ lindex $row $index ]
-            Deputs "$caption: [ lindex $row $index ]"
+        set stats           [ get_summary_stats ]
+        Deputs "stats:$stats"
+        set totalSessions   [ GetStatsFromReturn $stats total_count ]
+        if { $totalSessions == "" } {
+            continue
         }
-        if { [llength $rowValues] != 0 } {
-            lappend retList $rowValues
+        set upSessions      [ GetStatsFromReturn $stats success_count ]
+        if { $upSessions == "" } {
+            continue
         }
+        Deputs "Total Sessions:$totalSessions == Up Sessions:$upSessions ?"
+           
+        if { $upSessions != 0 && $totalSessions > 0 && $upSessions == $totalSessions } {
+            break    
+        }    
+        after 1000
     }
-        
-    return $retList
+    return [GetStandardReturnHeader]
 }
 
 class PppoeClientDevice {
-    inherit PppoeObject
+    inherit PppoeDevice
     
     public variable enable_echo_detect
     public variable ra_timeout
@@ -219,7 +199,7 @@ class PppoeClientDevice {
     }
     
     method config { args } {}
-    method wait_connect_complete { args } {}
+    method get_summary_stats {} {}
 }
 
 body PppoeClientDevice::config { args } {
@@ -283,52 +263,52 @@ body PppoeClientDevice::config { args } {
     return [GetStandardReturnHeader]
 }
 
-body PppoeClientDevice::wait_connect_complete { args } {
-    set tag "body PppoeClientDevice::wait_connect_complete [info script]"
+body PppoeClientDevice::get_summary_stats {} {
+    set tag "body PppoeClientDevice::get_summary_stats [info script]"
     Deputs "----- TAG: $tag -----"
-
-    set timeout 300
-    foreach { key value } $args {
-        set key [string tolower $key]
-        switch -exact -- $key {
-            -timeout {
-                set trans [ TimeTrans $value ]
-                if { [ string is integer $trans ] } {
-                    set timeout $trans
-                } else {
-                    error "$errNumber(1) key:$key value:$value"
-                }
-            }
-        }
+    
+    set view_name [ getViewObject "PPPoX Client Per Port" ]
+    Deputs "View Name:$view_name"
+    
+    if { [ catch {
+        set captionList [ ixNet getA $view_name/page -columnCaptions ]
+        set statList    [ ixNet getA $view_name/page -rowValues ]
+    } tbcErr ] } {
+        Deputs "No PPPoX Client Per Port results return"
+        return [ GetStandardReturnHeader ]
     }
     
-    set startClick [ clock seconds ]
-    while { 1 } {
-        set click [ clock seconds ]
-        if { [ expr $click - $startClick ] >= $timeout } {
-            return [ GetErrorReturnHeader "timeout" ]
-        }
+    set port_name           [ lsearch -exact $captionList {Port} ]
+    set success_count       [ lsearch -exact $captionList {Sessions Up} ]
+    set total_count         [ lsearch -exact $captionList {Sessions Total} ]
+    
+    set ret [ GetStandardReturnHeader ]
+
+    foreach row $statList {
+        eval {set row} $row
+        set statsItem   "port_name"
+        set statsVal    [ lindex $row $port_name ]
+        Deputs "Port Name:[ lindex $row $port_name ]"
+        set ret $ret[ GetStandardReturnBody $statsItem $statsVal ]
         
-        set stats [ get_view_stats -view_name "Protocols Summary" -captions [list {Protocol Type} {Sessions Up} {Sessions Total}]]
-        set totalSessions 0
-        set upSessions    0
-        foreach results $stats {
-            if { [lindex $results 0] == "PPPoX Client" } {
-                set totalSessions [lindex $results 2]
-                set upSessions [lindex $results 1]
-                Deputs "Total Sessions:$totalSessions == Sessions Up:$upSessions ?"  
-            }
-        }     
-        if { $upSessions != 0 && $totalSessions > 0 && $upSessions == $totalSessions } {
-            break    
-        }    
-        after 1000
+        set statsItem   "success_count"
+        set statsVal    [ lindex $row $success_count ]
+        Deputs "stats val:$statsVal"
+        set ret $ret[ GetStandardReturnBody $statsItem $statsVal ]
+        
+        set statsItem   "total_count"
+        set statsVal    [ lindex $row $total_count ]
+        Deputs "stats val:$statsVal"
+        set ret $ret[ GetStandardReturnBody $statsItem $statsVal ]
+        
+        Deputs "ret:$ret"
     }
-    return [GetStandardReturnHeader]
+        
+    return $ret
 }
 
 class PppoeServerDevice {
-    inherit PppoeObject
+    inherit PppoeDevice
     
     public variable ipv4_client_addr
     public variable ipv4_client_addr_step
@@ -362,7 +342,7 @@ class PppoeServerDevice {
     }
     
     method config { args } {}
-    method wait_connect_complete { args } {}
+    method get_summary_stats {} {}
 }
 
 body PppoeServerDevice::config { args } {
@@ -488,49 +468,46 @@ body PppoeServerDevice::config { args } {
     
     return [GetStandardReturnHeader]
 }
-
-body PppoeServerDevice::wait_connect_complete { args } {
-    set tag "body PppoeServerDevice::wait_connect_complete [info script]"
+body PppoeServerDevice::get_summary_stats {} {
+    set tag "body PppoeServerDevice::get_summary_stats [info script]"
     Deputs "----- TAG: $tag -----"
-
-    set timeout 300
-
-    foreach { key value } $args {
-        set key [string tolower $key]
-        switch -exact -- $key {
-            -timeout {
-                set trans [ TimeTrans $value ]
-                if { [ string is integer $trans ] } {
-                    set timeout $trans
-                } else {
-                    error "$errNumber(1) key:$key value:$value"
-                }
-            }
-
-        }
-    }
     
-    set startClick [ clock seconds ]
-    while { 1 } {
-        set click [ clock seconds ]
-        if { [ expr $click - $startClick ] >= $timeout } {
-            return [ GetErrorReturnHeader "timeout" ]
-        }
-        
-        set stats [ get_view_stats -view_name "Protocols Summary" -captions [list {Protocol Type} {Sessions Up} {Sessions Total}]]
-        set totalSessions 0
-        set upSessions    0
-        foreach results $stats {
-            if { [lindex $results 0] == "PPPoX Server" } {
-                set totalSessions [lindex $results 2]
-                set upSessions [lindex $results 1]
-                Deputs "Total Sessions:$totalSessions == Sessions Up:$upSessions ?"  
-            }
-        }     
-        if { $upSessions != 0 && $totalSessions > 0 && $upSessions == $totalSessions } {
-            break    
-        }    
-        after 1000
+    set view_name [ getViewObject "PPPoX Server Per Port" ]
+    Deputs "View Name:$view_name"
+    
+    if { [ catch {
+        set captionList [ ixNet getA $view_name/page -columnCaptions ]
+        set statList [ ixNet getA $view_name/page -rowValues ]
+    } tbcErr ] } {
+        Deputs "No PPPoX Server Per Port results return"
+        return [ GetStandardReturnHeader ]
     }
-    return [GetStandardReturnHeader]
+
+    set port_name           [ lsearch -exact $captionList {Port} ]
+    set success_count       [ lsearch -exact $captionList {Sessions Up} ]
+    set total_count         [ lsearch -exact $captionList {Sessions Total} ]
+    
+    set ret [ GetStandardReturnHeader ]
+
+    foreach row $statList {
+        eval {set row} $row
+        set statsItem   "port_name"
+        set statsVal    [ lindex $row $port_name ]
+        Deputs "Port Name:[ lindex $row $port_name ]"
+        set ret $ret[ GetStandardReturnBody $statsItem $statsVal ]
+        
+        set statsItem   "success_count"
+        set statsVal    [ lindex $row $success_count ]
+        Deputs "stats val:$statsVal"
+        set ret $ret[ GetStandardReturnBody $statsItem $statsVal ]
+        
+        set statsItem   "total_count"
+        set statsVal    [ lindex $row $total_count ]
+        Deputs "stats val:$statsVal"
+        set ret $ret[ GetStandardReturnBody $statsItem $statsVal ]
+        
+        Deputs "ret:$ret"
+    }
+        
+    return $ret
 }

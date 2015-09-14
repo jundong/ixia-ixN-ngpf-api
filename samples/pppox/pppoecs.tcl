@@ -52,11 +52,8 @@ pppoeServer wait_connect_complete -timeout 30
 pppoeClient start
 pppoeClient wait_connect_complete -timeout 30
 
-set clientPerPortResults [pppoeClient get_view_stats -view_name "PPPoX Client Per Port"]
-#foreach result $clientPerPortResults {
-#    puts $result
-#}
-set serverPerPortResults [pppoeServer get_view_stats -view_name "PPPoX Server Per Port"]
-#foreach result $serverPerPortResults {
-#    puts $result
-#}
+set clientPerPortResults [pppoeClient get_summary_stats]
+pppoeClient stop
+
+set serverPerPortResults [pppoeServer get_summary_stats]
+pppoeServer stop
